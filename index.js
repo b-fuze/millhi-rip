@@ -2,6 +2,7 @@
 
 const req = require("request")
 const parse = require("url")
+const fs = require("fs")
 
 // Get args
 const url = process.argv[2]
@@ -58,6 +59,9 @@ function get() {
 			} else {
 				exit("Reached end at " + index)
 			}
+		} else {
+			const fileName = index + halves[1]
+
 		}
 	})
 }
