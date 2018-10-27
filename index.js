@@ -12,7 +12,7 @@ const maxTries = 10
 
 if (url === undefined || !parse.parse(url).host || !url.includes("%")) {
 	console.log(
-`USAGE: ripper http(s)://host.tld/.../%.ext`
+`USAGE: ripper http(s)://host.tld/.../%.ext [START] [--no-pad]`
 	)
 	process.exit(1)
 }
@@ -23,11 +23,18 @@ Url:   ${ url }
 ---`
 )
 
+let noPadding = false
 let isPadded = false
 let padd = ("" + start).length
 const halves = url.split("%")
 let index = start
 let attempt = 1
+
+for (const arg of process.argv) {
+	if (arg === "--no-pad") {
+		noPadding = true
+	}
+}
 
 function exit(msg, retCode = 0) {
 	console.log(msg)
@@ -50,7 +57,7 @@ function get() {
 	}, function(err, res, data) {
 		// Get stuff
 		if (res.statusCode === 403) {
-			if (index === start) {
+			if (index === start && !noPadding) {
 				if (!isPadded) {
 					// Switch to padding
 					console.log("Reattempt with padding")
