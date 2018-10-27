@@ -1,6 +1,6 @@
 #! /usr/bin/env node
 
-const req = require("request")
+const request = require("request")
 const parse = require("url")
 const fs = require("fs")
 
@@ -19,7 +19,8 @@ if (url === undefined || !parse.parse(url).host || !url.includes("%")) {
 
 console.log(
 `Start: ${ start }
-Url:   ${ url }`
+Url:   ${ url }
+---`
 )
 
 let isPadded = false
@@ -39,29 +40,46 @@ function next() {
 
 function get() {
 	const imgUrl = halves[0]
-		       + (isPadded ? ("" + index).padStart(padd, "0") : index) 
+		       + (isPadded ? ("" + index).padStart(padd, "0") : index)
 		       + halves[1]
-	console.log("Requesting: " + imgUrl)
-	request(imgUrl, function(err, res, data) {
-		// Get stuff
-		if (res.statusCode === 404) {
-			if (!isPadded) {
-				isPadded = true
-				return next()
-			} else if (index === start) {
-				attempt++
 
-				if (attempt > maxTries) {
-					exit("Exhausted max attempts", 1)
-				} else {
+	console.log("Requesting: " + imgUrl)
+	request({
+		url: imgUrl,
+		encoding: null,
+	}, function(err, res, data) {
+		// Get stuff
+		if (res.statusCode === 403) {
+			if (index === start) {
+				if (!isPadded) {
+					// Switch to padding
+					console.log("Reattempt with padding")
+					isPadded = true
 					return next()
+				} else {
+					// Increase padding
+					attempt++
+					padd++;
+
+					if (attempt > maxTries) {
+						exit("Exhausted max attempts", 1)
+					} else {
+						return next()
+					}
 				}
 			} else {
-				exit("Reached end at " + index)
-			}
-		} else {
-			const fileName = index + halves[1]
+				// Done
+				console.log("Skip " + index);
 
+				index++;
+				return next();
+			}
+		} else if (res.statusCode === 200) {
+			const fileName = index + halves[1]
+			fs.writeFileSync(fileName, data, {encoding: "binary"})
+
+			index++;
+			return next()
 		}
 	})
 }
