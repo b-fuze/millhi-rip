@@ -6,35 +6,43 @@ const fs = require("fs")
 
 // Get args
 const url = process.argv[2]
-const start = isNaN(process.argv[3]) || !process.argv[3] ? 1 : parseInt(process.argv[3])
 const interval = 500
 const maxTries = 10
 
 if (url === undefined || !parse.parse(url).host || !url.includes("%")) {
 	console.log(
-`USAGE: ripper http(s)://host.tld/.../%.ext [START] [--no-pad]`
+`USAGE: ripper http(s)://host.tld/.../%.ext [START] [END] [--no-pad]`
 	)
 	process.exit(1)
 }
 
-console.log(
-`Start: ${ start }
-Url:   ${ url }
----`
-)
-
 let noPadding = false
 let isPadded = false
-let padd = ("" + start).length
 const halves = url.split("%")
-let index = start
+const numArgs = []
+let index = start = 1
+let end = 0
+let padd = ("" + start).length
 let attempt = 1
 
 for (const arg of process.argv) {
 	if (arg === "--no-pad") {
 		noPadding = true
+	} else if (/^\d+$/.test(arg)) {
+		numArgs.push(parseInt(arg, 10))
 	}
 }
+
+// Set number args
+0 in numArgs && (index = start = numArgs[0], padd = ("" + start).length)
+1 in numArgs && (end = numArgs[1])
+
+console.log(
+`Start: ${ start }
+End:   ${ end }
+Url:   ${ url }
+---`
+)
 
 function exit(msg, retCode = 0) {
 	console.log(msg)
@@ -86,6 +94,11 @@ function get() {
 			fs.writeFileSync(fileName, data, {encoding: "binary"})
 
 			index++;
+
+			if (index > end) {
+				exit("Reached end: " + end)
+			}
+
 			return next()
 		}
 	})
