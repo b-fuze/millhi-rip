@@ -16,6 +16,7 @@ if (url === undefined || !parse.parse(url).host || !url.includes("%")) {
 	process.exit(1)
 }
 
+let noSkip = false
 let noPadding = false
 let isPadded = false
 const halves = url.split("%")
@@ -26,7 +27,9 @@ let padd = ("" + start).length
 let attempt = 1
 
 for (const arg of process.argv) {
-	if (arg === "--no-pad") {
+	if (arg === "--no-skip") {
+		noSkip = true
+	} else if (arg === "--no-pad") {
 		noPadding = true
 	} else if (/^\d+$/.test(arg)) {
 		numArgs.push(parseInt(arg, 10))
@@ -44,6 +47,12 @@ Url:   ${ url }
 ---`
 )
 
+const files = {}
+
+if (!noSkip) {
+	fs.readdirSync(process.cwd()).forEach(file => (files[file] = 1))
+}
+
 function exit(msg, retCode = 0) {
 	console.log(msg)
 	process.exit(retCode)
@@ -53,10 +62,24 @@ function next() {
 	setTimeout(get, interval)
 }
 
+function imgName(index) {
+	return (isPadded ? ("" + index).padStart(padd, "0") : index)
+	       + halves[1]
+}
+
 function get() {
-	const imgUrl = halves[0]
-		       + (isPadded ? ("" + index).padStart(padd, "0") : index)
-		       + halves[1]
+	let img = imgName(index)
+
+	if (!noSkip) {
+		while (files[img]) {
+			console.log("Skip previously downloaded " + img)
+
+			index++
+			img = imgName(index)
+		}
+	}
+
+	const imgUrl = halves[0] + img
 
 	console.log("Requesting: " + imgUrl)
 	request({
